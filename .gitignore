@@ -1,0 +1,13 @@
+# Cache
+__pycache__/
+
+# Virtual environment
+.venv/
+
+# PyInstaller folders and files
+build/
+dist/
+main.spec
+
+# Custom files
+todo.md
