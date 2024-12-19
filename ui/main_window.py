@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPolygonF
 import pyqtgraph as pg
 from shapely.geometry import Polygon, GeometryCollection
 
-from ui.slider_with_label import SliderWithLabel
+from ui.slider_double_spinbox import SliderDoubleSpinBox
 
 from models.rls import RLS
 from utils.ellipse_calculator import compute_ellipse
@@ -217,19 +217,26 @@ class MainWindow(QtWidgets.QWidget):
         self.hyperbola2_uncertainty = self.plot_widget.plot([], [], pen=pg.mkPen(color='brown', width=2, style=QtCore.Qt.DashDotLine), name="Гипербола 2 (Погрешность)")
         self.hyperbola2_uncertainty_neg = self.plot_widget.plot([], [], pen=pg.mkPen(color='brown', width=2, style=QtCore.Qt.DotLine), name="Гипербола 2 (Погрешность Минус)")
 
-    def _sync_angles(self, value):
-        """Синхронизация угла РЛС2 с углом РЛС1."""
+    def _sync_angles_from_rls1(self, value):
         self.angle_spin_rls2.blockSignals(True)
-        self.angle_spin_rls2.setValue(180-value)
+        self.angle_spin_rls2.setValue(180 - value)
         self.angle_spin_rls2.blockSignals(False)
+        self.update_plot()
+
+    def _sync_angles_from_rls2(self, value):
+        self.angle_spin_rls1.blockSignals(True)
+        self.angle_spin_rls1.setValue(180 - value)
+        self.angle_spin_rls1.blockSignals(False)
         self.update_plot()
 
     def _toggle_beam_sync(self, state):
         """Включение или отключение синхронизации ДНА."""
         if state == QtCore.Qt.Checked:
-            self.angle_spin_rls1.valueChanged.connect(self._sync_angles)
+            self.angle_spin_rls1.valueChanged.connect(self._sync_angles_from_rls1)
+            self.angle_spin_rls2.valueChanged.connect(self._sync_angles_from_rls2)
         else:
-            self.angle_spin_rls1.valueChanged.disconnect(self._sync_angles)
+            self.angle_spin_rls1.valueChanged.disconnect(self._sync_angles_from_rls1)
+            self.angle_spin_rls2.valueChanged.disconnect(self._sync_angles_from_rls2)
 
     def _load_option_1_ui(self):
         """Загрузка элементов пользовательского интерфейса для Варианта 1."""
@@ -242,28 +249,34 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls1 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            input_element = SliderDoubleSpinBox()
+
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param.lower()))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls1[param] = spin
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
+
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls1[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -273,28 +286,34 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls2 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            input_element = SliderDoubleSpinBox()
+            
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param.lower()))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls2[param] = spin
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
+
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls2[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -396,34 +415,35 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls1 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            slider = SliderWithLabel()
-            slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-            slider.setTickInterval(10)
-            slider.setSingleStep(1)
+            input_element = SliderDoubleSpinBox()
 
             if param in ['X', 'Y']:
-                slider.setRange(-1000, 1000)
-                slider.setDecimals(2)
-                slider.setValue(int(getattr(self.rls1, param.lower())))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                slider.setRange(0, 10000)
-                slider.setDecimals(2)
-                slider.setValue(int(getattr(self.rls1, param)))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                slider.setRange(-180, 180)
-                slider.setDecimals(0)
-                slider.setValue(int(getattr(self.rls1, param)))
-                self.angle_spin_rls1 = slider
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
+                self.angle_spin_rls1 = input_element
             elif param == 'W':
-                slider.setRange(1, 45)
-                slider.setDecimals(0)
-                slider.setValue(int(getattr(self.rls1, param)))
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
 
-            slider.valueChanged.connect(self.update_plot)
-            self.inputs_rls1[param] = slider
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls1[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(slider)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -433,29 +453,35 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls2 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            input_element = SliderDoubleSpinBox()
+
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param.lower()))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
-                self.angle_spin_rls2 = spin
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
+                self.angle_spin_rls2 = input_element
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls2[param] = spin
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
+
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls2[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -490,28 +516,34 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls1 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            input_element = SliderDoubleSpinBox()
+
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param.lower()))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls1[param] = spin
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls1, param))
+                input_element.setSingleStep(1)
+
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls1[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -521,28 +553,34 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls2 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            input_element = SliderDoubleSpinBox()
+
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param.lower()))
+                input_element.setRange(-1000, 1000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param.lower()))
+                input_element.setSingleStep(0.1)
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls2, param))
+                input_element.setRange(0, 10000)
+                input_element.setDecimals(2)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
+                input_element.setRange(-180, 180)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls2, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls2[param] = spin
+                input_element.setRange(1, 45)
+                input_element.setDecimals(0)
+                input_element.setValue(getattr(self.rls2, param))
+                input_element.setSingleStep(1)
+
+            input_element.valueChanged.connect(self.update_plot)
+            self.inputs_rls2[param] = input_element
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(input_element)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
