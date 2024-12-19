@@ -7,6 +7,8 @@ from PyQt5.QtGui import QPolygonF
 import pyqtgraph as pg
 from shapely.geometry import Polygon, GeometryCollection
 
+from ui.slider_with_label import SliderWithLabel
+
 from models.rls import RLS
 from utils.ellipse_calculator import compute_ellipse
 from utils.hyperbola_calculator import compute_hyperbola
@@ -230,7 +232,7 @@ class MainWindow(QtWidgets.QWidget):
             self.angle_spin_rls1.valueChanged.disconnect(self._sync_angles)
 
     def _load_option_1_ui(self):
-        """агрузка элементов пользовательского интерфейса для Варианта 1."""
+        """Загрузка элементов пользовательского интерфейса для Варианта 1."""
         self._initialize_static_plot_items()
 
         self.dynamic_layout.addSpacing(20)
@@ -297,8 +299,36 @@ class MainWindow(QtWidgets.QWidget):
 
         self.dynamic_layout.addSpacing(20)
 
+        self.dynamic_layout.addWidget(QtWidgets.QLabel("<b>Конфигурация зон</b>"))
+
+        label_R1 = QtWidgets.QLabel("R1:")
+        spin_R1 = QtWidgets.QDoubleSpinBox()
+        spin_R1.setRange(1, 1000)
+        spin_R1.setDecimals(0)
+        spin_R1.setValue(300)
+        spin_R1.valueChanged.connect(self.update_plot)
+        self.spin_R1 = spin_R1
+        h_layout_R1 = QtWidgets.QHBoxLayout()
+        h_layout_R1.addWidget(label_R1)
+        h_layout_R1.addWidget(spin_R1)
+        self.dynamic_layout.addLayout(h_layout_R1)
+
+        label_R2 = QtWidgets.QLabel("R2:")
+        spin_R2 = QtWidgets.QDoubleSpinBox()
+        spin_R2.setRange(1, 1000)
+        spin_R2.setDecimals(0)
+        spin_R2.setValue(550)
+        spin_R2.valueChanged.connect(self.update_plot)
+        self.spin_R2 = spin_R2
+        h_layout_R2 = QtWidgets.QHBoxLayout()
+        h_layout_R2.addWidget(label_R2)
+        h_layout_R2.addWidget(spin_R2)
+        self.dynamic_layout.addLayout(h_layout_R2)
+
+        self.dynamic_layout.addSpacing(20)
+
         # Глобальные погрешности
-        self.dynamic_layout.addWidget(QtWidgets.QLabel("<b>Погрешности</b>"))
+        self.dynamic_layout.addWidget(QtWidgets.QLabel("<b>Погрешности зон</b>"))
 
         # Погрешность для эллипсов
         label_E_ellipse = QtWidgets.QLabel("E_ellipse:")
@@ -349,7 +379,7 @@ class MainWindow(QtWidgets.QWidget):
         self.dynamic_layout.addStretch()
     
     def _load_option_2_ui(self):
-        """агрузка элементов пользовательского интерфейса для Варианта 2."""
+        """Загрузка элементов пользовательского интерфейса для Варианта 2."""
         self._initialize_rls(1)
         self._initialize_static_plot_items()
 
@@ -366,29 +396,34 @@ class MainWindow(QtWidgets.QWidget):
         self.inputs_rls1 = {}
         for param in ['X', 'Y', 'R', 'A', 'W']:
             label = QtWidgets.QLabel(f"{param}:")
-            spin = QtWidgets.QDoubleSpinBox()
+            slider = SliderWithLabel()
+            slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+            slider.setTickInterval(10)
+            slider.setSingleStep(1)
+
             if param in ['X', 'Y']:
-                spin.setRange(-1000, 1000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param.lower()))
+                slider.setRange(-1000, 1000)
+                slider.setDecimals(2)
+                slider.setValue(int(getattr(self.rls1, param.lower())))
             elif param == 'R':
-                spin.setRange(0, 10000)
-                spin.setDecimals(2)
-                spin.setValue(getattr(self.rls1, param))
+                slider.setRange(0, 10000)
+                slider.setDecimals(2)
+                slider.setValue(int(getattr(self.rls1, param)))
             elif param == 'A':
-                spin.setRange(-180, 180)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
-                self.angle_spin_rls1 = spin
+                slider.setRange(-180, 180)
+                slider.setDecimals(0)
+                slider.setValue(int(getattr(self.rls1, param)))
+                self.angle_spin_rls1 = slider
             elif param == 'W':
-                spin.setRange(1, 45)
-                spin.setDecimals(0)
-                spin.setValue(getattr(self.rls1, param))
-            spin.valueChanged.connect(self.update_plot)
-            self.inputs_rls1[param] = spin
+                slider.setRange(1, 45)
+                slider.setDecimals(0)
+                slider.setValue(int(getattr(self.rls1, param)))
+
+            slider.valueChanged.connect(self.update_plot)
+            self.inputs_rls1[param] = slider
             h_layout = QtWidgets.QHBoxLayout()
             h_layout.addWidget(label)
-            h_layout.addWidget(spin)
+            h_layout.addWidget(slider)
             self.dynamic_layout.addLayout(h_layout)
 
         self.dynamic_layout.addSpacing(20)
@@ -444,7 +479,7 @@ class MainWindow(QtWidgets.QWidget):
         self.dynamic_layout.addStretch()
 
     def _load_option_3_ui(self):
-        """агрузка элементов пользовательского интерфейса для Варианта 3."""
+        """Загрузка элементов пользовательского интерфейса для Варианта 3."""
         self._initialize_rls(2)
         self._initialize_static_plot_items()
 
@@ -687,6 +722,8 @@ class MainWindow(QtWidgets.QWidget):
             max_range2 = self.rls2.R * 1.5
 
             # Обновление глобальных погрешностей
+            self.R1 = self.spin_R1.value()
+            self.R2 = self.spin_R2.value()
             self.E_ellipse = self.spin_E_ellipse.value()
             self.E_hyperbola = self.spin_E_hyperbola.value()
 
@@ -754,14 +791,14 @@ class MainWindow(QtWidgets.QWidget):
             # Конец расчёта ДНА
 
             # Построение эллипсов
-            c1 = self.rls1.R + self.rls2.R
+            c1 = self.R1 + self.R2
             ellipse1_x, ellipse1_y = compute_ellipse(self.rls1, self.rls2, c1)
             if len(ellipse1_x) > 0:
                 self.ellipse1.setData(ellipse1_x, ellipse1_y)
             else:
                 self.ellipse1.clear()
 
-            c2 = (self.rls1.R + self.E_ellipse) + (self.rls2.R + self.E_ellipse)
+            c2 = (self.R1 + self.E_ellipse) + (self.R2 + self.E_ellipse)
             ellipse2_x, ellipse2_y = compute_ellipse(self.rls1, self.rls2, c2)
             if len(ellipse2_x) > 0:
                 self.ellipse2.setData(ellipse2_x, ellipse2_y)
@@ -770,7 +807,7 @@ class MainWindow(QtWidgets.QWidget):
 
             # Построение гипербол
             # Гипербола 1: R2 - R1 = c
-            c_h1 = self.rls2.R - self.rls1.R
+            c_h1 = self.R2 - self.R1
             hyperbola1_ideal_x1, hyperbola1_ideal_y1, hyperbola1_ideal_x2, hyperbola1_ideal_y2 = compute_hyperbola(self.rls1, self.rls2, c_h1)
 
             # Гипербола 1 с погрешностью (положительная)
@@ -782,7 +819,7 @@ class MainWindow(QtWidgets.QWidget):
             hyperbola1_uncertainty_neg_x1, hyperbola1_uncertainty_neg_y1, hyperbola1_uncertainty_neg_x2, hyperbola1_uncertainty_neg_y2 = compute_hyperbola(self.rls1, self.rls2, c_h1_uncertainty_neg)
 
             # Гипербола 2: R1 - R2 = c
-            c_h2 = self.rls1.R - self.rls2.R
+            c_h2 = self.R1 - self.R2
             hyperbola2_ideal_x1, hyperbola2_ideal_y1, hyperbola2_ideal_x2, hyperbola2_ideal_y2 = compute_hyperbola(self.rls1, self.rls2, c_h2)
 
             # Гипербола 2 с погрешностью (положительная)
@@ -846,8 +883,8 @@ class MainWindow(QtWidgets.QWidget):
             ellipse_hyperbola1_intersection = ellipse_difference.intersection(hyperbola1_difference)
             ellipse_hyperbola2_intersection = ellipse_difference.intersection(hyperbola2_difference)
 
-            final_intersection1 = poly1.intersection(ellipse_hyperbola1_intersection)
-            final_intersection2 = poly2.intersection(ellipse_hyperbola2_intersection)
+            final_intersection1 = poly1.intersection(poly2).intersection(ellipse_hyperbola1_intersection)
+            final_intersection2 = poly1.intersection(poly1).intersection(ellipse_hyperbola2_intersection)
 
             x, y = final_intersection1.exterior.coords.xy
             points = [pg.QtCore.QPointF(xi, yi) for xi, yi in zip(x, y)]
