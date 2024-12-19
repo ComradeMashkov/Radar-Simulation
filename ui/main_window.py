@@ -606,10 +606,10 @@ class MainWindow(QtWidgets.QWidget):
                 },
                 'E_ellipse': self.E_ellipse,
                 'E_hyperbola': self.E_hyperbola,
-                'circle_radius_rls1': self.spin_radius_rls1.value(),
-                'circle_error_rls1': self.spin_error_rls1.value(),
-                'circle_radius_rls2': self.spin_radius_rls2.value(),
-                'circle_error_rls2': self.spin_error_rls2.value()
+                'circle_radius_rls1': getattr(self, 'spin_radius_rls1', None).value() if hasattr(self, 'spin_radius_rls1') else None,
+                'circle_error_rls1': getattr(self, 'spin_error_rls1', None).value() if hasattr(self, 'spin_error_rls1') else None,
+                'circle_radius_rls2': getattr(self, 'spin_radius_rls2', None).value() if hasattr(self, 'spin_radius_rls2') else None,
+                'circle_error_rls2': getattr(self, 'spin_error_rls2', None).value() if hasattr(self, 'spin_error_rls2') else None
             }
             try:
                 with open(filename, 'w', encoding='utf-8') as f:
